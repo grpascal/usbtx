@@ -1,0 +1,28 @@
+#!/bin/hush
+
+echo "* Mounting filesystems..."
+mount -t proc /proc /proc
+mount -t sysfs none /sys
+mkdir -p /dev/pts /dev/shm
+mount -t devpts devpts /dev/pts
+mount -t tmpfs none /tmp
+mount -t tmpfs none /dev/shm
+# MOUNT FS -- do not delete this line
+mount / / -o remount,ro,noatime >/dev/null 2>&1
+
+echo "* Starting system loggers..."
+syslogd -C16
+klogd
+
+echo /sbin/mdev >/proc/sys/kernel/hotplug
+# LOAD MODULES -- do not delete this line
+echo "* Creating devices..."
+/sbin/mdev -s
+
+echo -n "* Setting hostname: "
+hostname $(cat /etc/hostname) && hostname
+
+echo "* Configuring loopback interface..."
+ifconfig lo 127.0.0.1 up
+
+( while true; do capture_mux --spi /dev/spidev1.0 --spi_khz 16000 ; done ) >/tmp/log 2>&1 &
